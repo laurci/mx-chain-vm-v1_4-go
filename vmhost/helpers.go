@@ -146,6 +146,7 @@ type nilInterfaceChecker interface {
 }
 
 // GetVMHost returns the vm Context from the vm context map
+
 //nolint:all
 func GetVMHost(vmHostPtr unsafe.Pointer) VMHost {
 	if logVMHookCalls {
@@ -189,6 +190,10 @@ func GetMeteringContext(vmHostPtr unsafe.Pointer) MeteringContext {
 // GetStorageContext returns the storage context
 func GetStorageContext(vmHostPtr unsafe.Pointer) StorageContext {
 	return GetVMHost(vmHostPtr).Storage()
+}
+
+func GetPluginsContext(vmHostPtr unsafe.Pointer) *PluginsContext {
+	return GetVMHost(vmHostPtr).Plugins()
 }
 
 // WithFault returns true if the error is not nil, and uses the remaining gas if the execution has failed

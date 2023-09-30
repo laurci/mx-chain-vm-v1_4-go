@@ -38,9 +38,11 @@ func (validator *wasmValidator) verifyFunctions(instance wasmer.InstanceHandler)
 			return err
 		}
 
-		err = validator.verifyVoidFunction(instance, functionName)
-		if err != nil {
-			return err
+		if functionName != "mx_alloc" {
+			err = validator.verifyVoidFunction(instance, functionName)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

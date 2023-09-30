@@ -44,6 +44,7 @@ type vmHost struct {
 	meteringContext     vmhost.MeteringContext
 	storageContext      vmhost.StorageContext
 	managedTypesContext vmhost.ManagedTypesContext
+	pluginsContext      *vmhost.PluginsContext
 
 	gasSchedule          config.GasScheduleMap
 	scAPIMethods         *wasmer.Imports
@@ -160,6 +161,8 @@ func NewVMHost(
 		return nil, err
 	}
 
+	host.pluginsContext = contexts.NewPluginsContext(host)
+
 	gasCostConfig, err := config.CreateGasConfig(host.gasSchedule)
 	if err != nil {
 		return nil, err
@@ -241,6 +244,10 @@ func (host *vmHost) EnableEpochsHandler() vmcommon.EnableEpochsHandler {
 // ManagedTypes returns the ManagedTypeContext instance of the host
 func (host *vmHost) ManagedTypes() vmhost.ManagedTypesContext {
 	return host.managedTypesContext
+}
+
+func (host *vmHost) Plugins() *vmhost.PluginsContext {
+	return host.pluginsContext
 }
 
 // GetContexts returns the main contexts of the host

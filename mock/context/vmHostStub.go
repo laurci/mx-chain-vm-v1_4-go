@@ -116,6 +116,10 @@ func (vhs *VMHostStub) ManagedTypes() vmhost.ManagedTypesContext {
 	return nil
 }
 
+func (vhs *VMHostStub) Plugins() *vmhost.PluginsContext {
+	return nil
+}
+
 // IsVMV2Enabled mocked method
 func (vhs *VMHostStub) IsVMV2Enabled() bool {
 	return true

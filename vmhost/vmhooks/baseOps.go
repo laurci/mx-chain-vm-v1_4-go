@@ -87,6 +87,9 @@ package vmhooks
 // extern long long v1_4_getPrevBlockEpoch(void *context);
 // extern void		v1_4_getPrevBlockRandomSeed(void *context, int32_t resultOffset);
 // extern void		v1_4_getOriginalTxHash(void *context, int32_t resultOffset);
+//
+// extern int32_t	v1_4_mxPlugCall(void *context, int32_t pluginNameOffset, int32_t pluginNameLen, int32_t methodNameOffset, int32_t methodNameLen, int32_t argsOffset);
+//
 import "C"
 
 import (
@@ -185,6 +188,7 @@ const (
 	getPrevBlockEpochName            = "getPrevBlockEpoch"
 	getPrevBlockRandomSeedName       = "getPrevBlockRandomSeed"
 	getOriginalTxHashName            = "getOriginalTxHash"
+	mxPlugCall                       = "mxPlugCall"
 )
 
 var logEEI = logger.GetOrCreate("vm/eei")
@@ -586,6 +590,11 @@ func BaseOpsAPIImports(imports vmhooksmeta.EIFunctionReceiver) error {
 	}
 
 	err = imports.Append("getESDTNFTURILength", v1_4_getESDTNFTURILength, C.v1_4_getESDTNFTURILength)
+	if err != nil {
+		return err
+	}
+
+	err = imports.Append("mxPlugCall", v1_4_mxPlugCall, C.v1_4_mxPlugCall)
 	if err != nil {
 		return err
 	}
@@ -3298,6 +3307,65 @@ func v1_4_getReturnData(context unsafe.Pointer, resultID int32, dataOffset int32
 	}
 
 	return int32(len(result))
+}
+
+//export v1_4_mxPlugCall
+func v1_4_mxPlugCall(context unsafe.Pointer, pluginNameOffset int32, pluginNameLen int32, methodNameOffset int32, methodNameLen int32, argsOffset int32) int32 {
+	runtime := vmhost.GetRuntimeContext(context)
+
+	pluginNameBytes, _ := runtime.MemLoad(pluginNameOffset, pluginNameLen)
+	pluginName := string(pluginNameBytes)
+
+	methodNameBytes, _ := runtime.MemLoad(methodNameOffset, methodNameLen)
+	methodName := string(methodNameBytes)
+
+	argsLenBytes, _ := runtime.MemLoad(argsOffset, 8)
+	argsLen := uint64(binary.LittleEndian.Uint64(argsLenBytes))
+
+	args, _ := runtime.MemLoad(argsOffset, int32(argsLen+8))
+
+	plugins := vmhost.GetPluginsContext(context)
+
+	result := CallPlugin(plugins, pluginName, methodName, args)
+
+	result_len_bytes := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		result_len_bytes[i] = *(*byte)(unsafe.Pointer(uintptr(result) + uintptr(i)))
+	}
+	result_len := uint64(binary.LittleEndian.Uint64(result_len_bytes))
+
+	result_data := make([]byte, 8+result_len)
+	for i := 0; i < len(result_data); i++ {
+		result_data[i] = *(*byte)(unsafe.Pointer(uintptr(result) + uintptr(i)))
+	}
+
+	alloc_offset := pluginMemAlloc(runtime, int32(result_len+8))
+	runtime.MemStore(alloc_offset, result_data)
+
+	return alloc_offset
+}
+
+func pluginMemAlloc(runtime vmhost.RuntimeContext, len int32) int32 {
+	instance := runtime.GetInstance()
+
+	alloc_result, _ := instance.CallFunctionWithArgs("mx_alloc", len)
+	alloc_offset := alloc_result.ToI32()
+
+	return alloc_offset
+}
+
+func CallPlugin(ctx *vmhost.PluginsContext, pluginName string, methodName string, args []byte) unsafe.Pointer {
+	for _, plugin := range ctx.Plugins {
+		if plugin.Name == pluginName {
+			for _, method := range plugin.Methods {
+				if method.Name == methodName {
+					result := plugin.CallFn(methodName, args)
+					return result
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func GetReturnDataWithHostAndTypedArgs(host vmhost.VMHost, resultID int32) []byte {

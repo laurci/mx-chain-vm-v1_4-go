@@ -5,6 +5,7 @@ type InstanceHandler interface {
 	HasMemory() bool
 	HasFunction(funcName string) bool
 	CallFunction(funcName string) (Value, error)
+	CallFunctionWithArgs(funcName string, args ...interface{}) (Value, error)
 	SetContextData(data uintptr)
 	GetPointsUsed() uint64
 	SetPointsUsed(points uint64)

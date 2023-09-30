@@ -71,6 +71,10 @@ func (host *VMHostMock) Storage() vmhost.StorageContext {
 	return host.StorageContext
 }
 
+func (host *VMHostMock) Plugins() *vmhost.PluginsContext {
+	return nil
+}
+
 // EnableEpochsHandler mocked method
 func (host *VMHostMock) EnableEpochsHandler() vmcommon.EnableEpochsHandler {
 	return host.EnableEpochsHandlerField

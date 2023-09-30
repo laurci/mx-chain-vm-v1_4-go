@@ -4,6 +4,7 @@ import (
 	"crypto/elliptic"
 	"io"
 	"math/big"
+	"unsafe"
 
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
@@ -38,6 +39,7 @@ type VMHost interface {
 	Output() OutputContext
 	Metering() MeteringContext
 	Storage() StorageContext
+	Plugins() *PluginsContext
 	EnableEpochsHandler() vmcommon.EnableEpochsHandler
 
 	ExecuteESDTTransfer(destination []byte, sender []byte, esdtTransfers []*vmcommon.ESDTTransfer, callType vm.CallType) (*vmcommon.VMOutput, uint64, error)
@@ -276,6 +278,21 @@ type MeteringContext interface {
 	StartGasTracing(functionName string)
 	SetGasTracing(enableGasTracing bool)
 	GetGasTrace() map[string]map[string][]uint64
+}
+
+type VmPluginMethod struct {
+	Name string
+}
+
+type VmPlugin struct {
+	Name    string
+	Methods []VmPluginMethod
+	CallFn  func(methodName string, args []byte) unsafe.Pointer
+}
+
+type PluginsContext struct {
+	Plugins []VmPlugin
+	Host    VMHost
 }
 
 // StorageStatus defines the states the storage can be in

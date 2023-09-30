@@ -415,6 +415,15 @@ func (instance *Instance) CallFunction(funcName string) (Value, error) {
 	return callExportedFunction(instance.instance, callInfo)
 }
 
+func (instance *Instance) CallFunctionWithArgs(funcName string, args ...interface{}) (Value, error) {
+	callInfo, found := instance.Exports[funcName]
+	if !found {
+		return Void(), ErrExportNotFound
+	}
+
+	return callExportedFunction(instance.instance, callInfo, args...)
+}
+
 // Reset resets the instance memories and globals
 func (instance *Instance) Reset() bool {
 	if instance.AlreadyClean {
