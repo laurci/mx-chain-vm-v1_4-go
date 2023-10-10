@@ -287,7 +287,7 @@ type VmPluginMethod struct {
 type VmPlugin struct {
 	Name    string
 	Methods []VmPluginMethod
-	CallFn  func(methodName string, args []byte) unsafe.Pointer
+	CallFn  func(callCtx string, methodName string, args []byte) unsafe.Pointer
 }
 
 type PluginsContext struct {

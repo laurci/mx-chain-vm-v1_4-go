@@ -77,7 +77,7 @@ func loadPlugins(host vmhost.VMHost) []vmhost.VmPlugin {
 		}
 		vmPluginLog.Info("initialized VM plugin: ", "name", initResult.Name)
 
-		var call func(methodName string, args []byte) unsafe.Pointer
+		var call func(callCtx string, methodName string, args []byte) unsafe.Pointer
 		purego.RegisterLibFunc(&call, pluginso, "mx_plug_call")
 
 		methods := make([]vmhost.VmPluginMethod, len(initResult.Methods))

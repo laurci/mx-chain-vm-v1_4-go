@@ -95,6 +95,7 @@ import "C"
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -3309,6 +3310,15 @@ func v1_4_getReturnData(context unsafe.Pointer, resultID int32, dataOffset int32
 	return int32(len(result))
 }
 
+type plugCallContext struct {
+	Address []byte
+}
+
+func encodeCallCtx(callCtx plugCallContext) string {
+	encodedCallCtx, _ := json.Marshal(callCtx)
+	return string(encodedCallCtx)
+}
+
 //export v1_4_mxPlugCall
 func v1_4_mxPlugCall(context unsafe.Pointer, pluginNameOffset int32, pluginNameLen int32, methodNameOffset int32, methodNameLen int32, argsOffset int32) int32 {
 	runtime := vmhost.GetRuntimeContext(context)
@@ -3324,9 +3334,13 @@ func v1_4_mxPlugCall(context unsafe.Pointer, pluginNameOffset int32, pluginNameL
 
 	args, _ := runtime.MemLoad(argsOffset, int32(argsLen+8))
 
+	callCtx := plugCallContext{
+		Address: runtime.GetContextAddress(),
+	}
+
 	plugins := vmhost.GetPluginsContext(context)
 
-	result := CallPlugin(plugins, pluginName, methodName, args)
+	result := CallPlugin(plugins, callCtx, pluginName, methodName, args)
 
 	result_len_bytes := make([]byte, 8)
 	for i := 0; i < 8; i++ {
@@ -3354,12 +3368,12 @@ func pluginMemAlloc(runtime vmhost.RuntimeContext, len int32) int32 {
 	return alloc_offset
 }
 
-func CallPlugin(ctx *vmhost.PluginsContext, pluginName string, methodName string, args []byte) unsafe.Pointer {
+func CallPlugin(ctx *vmhost.PluginsContext, callCtx plugCallContext, pluginName string, methodName string, args []byte) unsafe.Pointer {
 	for _, plugin := range ctx.Plugins {
 		if plugin.Name == pluginName {
 			for _, method := range plugin.Methods {
 				if method.Name == methodName {
-					result := plugin.CallFn(methodName, args)
+					result := plugin.CallFn(encodeCallCtx(callCtx), methodName, args)
 					return result
 				}
 			}
